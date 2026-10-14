@@ -1,4 +1,0 @@
-flask>=3.0
-flask-limiter>=3.5
-requests>=2.31
-gunicorn>=22.0
