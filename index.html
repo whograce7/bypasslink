@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Langsung Link - buka alamat asli dari link pendek</title>
+<meta name="description" content="Tempel link pendek atau link perantara, dapatkan alamat tujuan aslinya tanpa menunggu.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f2f4f8;
+    --card: #ffffff;
+    --ink: #0f1b33;
+    --muted: #55617c;
+    --route: #9aa7c2;
+    --accent: #2438f5;
+    --accent-ink: #ffffff;
+    --danger: #b42318;
+    --sans: "Bricolage Grotesque", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 1.0625rem;
+    line-height: 1.55;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 44rem; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
+  .brand { font-weight: 800; font-size: 1.05rem; letter-spacing: -0.01em; margin: 0 0 4.5rem; }
+  h1 {
+    margin: 0 0 1rem;
+    font-size: clamp(2.3rem, 7vw + 0.5rem, 4.1rem);
+    font-weight: 800;
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+    max-width: 14ch;
+  }
+  .lead { margin: 0 0 2rem; color: var(--muted); max-width: 34rem; }
+
+  form { display: flex; gap: 0.6rem; }
+  input[type="text"] {
+    flex: 1; min-width: 0;
+    font: 500 1rem/1.2 var(--mono);
+    color: var(--ink);
+    background: var(--card);
+    border: 2px solid var(--ink);
+    border-radius: 6px;
+    padding: 0.95rem 1rem;
+  }
+  input::placeholder { color: #8b96ad; }
+  button, .btn {
+    font: 700 1rem/1 var(--sans);
+    border-radius: 6px;
+    border: 2px solid var(--accent);
+    background: var(--accent);
+    color: var(--accent-ink);
+    padding: 0 1.4rem;
+    min-height: 3.1rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  button:hover, .btn:hover { filter: brightness(1.1); }
+  button[disabled] { opacity: 0.65; cursor: progress; }
+  .btn.ghost { background: transparent; color: var(--ink); border-color: var(--ink); }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+  .hint { margin: 0.75rem 0 0; font-size: 0.9rem; color: var(--muted); }
+
+  #out { margin-top: 2.75rem; }
+  .route { list-style: none; margin: 0; padding: 0; }
+  .stop { position: relative; padding: 0 0 1.6rem 2.1rem; }
+  .stop::before {              /* garis rute */
+    content: ""; position: absolute; left: 0.5rem; top: 1.15rem; bottom: -0.1rem;
+    width: 2px; background: var(--route);
+  }
+  .stop:last-child { padding-bottom: 0; }
+  .stop:last-child::before { display: none; }
+  .dot {
+    position: absolute; left: 0; top: 0.32rem; width: 1.1rem; height: 1.1rem;
+    border-radius: 50%; border: 2px solid var(--ink); background: var(--paper);
+  }
+  .stop.dest .dot { background: var(--accent); border-color: var(--accent); }
+  .label { margin: 0; font-weight: 700; font-size: 0.95rem; }
+  .via { font-weight: 500; color: var(--muted); margin-left: 0.5rem; }
+  .url { margin: 0.2rem 0 0; font: 400 0.88rem/1.5 var(--mono); color: var(--muted); word-break: break-all; }
+
+  .dest-card {
+    margin-top: 0.6rem; background: var(--card);
+    border: 2px solid var(--ink); border-radius: 6px; padding: 1.1rem 1.2rem 1.2rem;
+  }
+  .domain { margin: 0; font-size: clamp(1.5rem, 4vw + 0.6rem, 2.1rem); font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; word-break: break-all; }
+  .dest-card .url { color: var(--ink); }
+  .actions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1rem; }
+  .caution { margin: 0.9rem 0 0; font-size: 0.9rem; color: var(--muted); }
+
+  .notice { border-left: 4px solid var(--ink); background: var(--card); padding: 1rem 1.2rem; border-radius: 0 6px 6px 0; }
+  .notice.error { border-left-color: var(--danger); }
+  .notice p { margin: 0; }
+  .notice p + p { margin-top: 0.5rem; color: var(--muted); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .stop.enter { animation: drop 0.35s ease-out both; animation-delay: calc(var(--i) * 140ms); }
+    @keyframes drop { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  }
+  @media (max-width: 30rem) {
+    .brand { margin-bottom: 3rem; }
+    form { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <p class="brand">Langsung Link</p>
+  <h1>Tempel link, langsung ke alamat aslinya.</h1>
+  <p class="lead">Untuk link pendek seperti bit.ly dan j.mp, serta halaman perantara yang menyimpan alamat tujuan di dalamnya.</p>
+
+  <form id="form" autocomplete="off">
+    <input id="url" type="text" inputmode="url" spellcheck="false" autocapitalize="off"
+           placeholder="https://bit.ly/contoh" aria-label="Link yang ingin dicek" required>
+    <button id="go" type="submit">Cari link asli</button>
+  </form>
+  <p class="hint">Halaman yang memakai captcha atau token dari server tidak bisa dibuka otomatis.</p>
+
+  <section id="out" aria-live="polite"></section>
+</main>
+
+<script>
+(function () {
+  var form = document.getElementById('form');
+  var input = document.getElementById('url');
+  var btn = document.getElementById('go');
+  var out = document.getElementById('out');
+
+  var VIA = {
+    redirect: 'redirect server',
+    param: 'dari parameter URL',
+    base64: 'dari kode base64',
+    meta: 'redirect halaman',
+    js: 'redirect JavaScript',
+    html: 'dari isi halaman'
+  };
+
+  function h(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function isHttp(u) { return /^https?:\/\//i.test(u); }
+  function hostOf(u) { try { return new URL(u).hostname; } catch (e) { return u; } }
+
+  function notice(msg, sub, isError) {
+    out.replaceChildren();
+    var n = h('div', 'notice' + (isError ? ' error' : ''));
+    if (isError) n.setAttribute('role', 'alert');
+    n.appendChild(h('p', null, msg));
+    if (sub) n.appendChild(h('p', null, sub));
+    out.appendChild(n);
+  }
+
+  function copy(text, button) {
+    function done() {
+      var old = button.textContent;
+      button.textContent = 'Tersalin';
+      setTimeout(function () { button.textContent = old; }, 1500);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () {});
+    } else {
+      var t = document.createElement('textarea');
+      t.value = text; document.body.appendChild(t); t.select();
+      try { document.execCommand('copy'); done(); } catch (e) {}
+      document.body.removeChild(t);
+    }
+  }
+
+  function stop(i, label, via, url) {
+    var li = h('li', 'stop enter');
+    li.style.setProperty('--i', i);
+    li.appendChild(h('span', 'dot'));
+    var l = h('p', 'label', label);
+    if (via) l.appendChild(h('span', 'via', VIA[via] || via));
+    li.appendChild(l);
+    if (url) li.appendChild(h('p', 'url', url));
+    return li;
+  }
+
+  function render(data) {
+    var chain = data.chain || [];
+    if (!data.resolved || chain.length < 2) {
+      notice('Tidak ada alamat tujuan yang bisa diambil dari link ini.',
+        'Kemungkinan halaman ini memakai captcha, timer, atau token dari server. Link harus dibuka manual.');
+      return;
+    }
+    out.replaceChildren();
+    var ol = h('ol', 'route');
+    var last = chain.length - 1;
+    chain.forEach(function (c, i) {
+      if (i === 0) { ol.appendChild(stop(i, 'Link awal', null, c.url)); return; }
+      if (i < last) { ol.appendChild(stop(i, 'Perantara', c.via, c.url)); return; }
+
+      var li = h('li', 'stop dest enter');
+      li.style.setProperty('--i', i);
+      li.appendChild(h('span', 'dot'));
+      var l = h('p', 'label', 'Tujuan asli');
+      if (c.via) l.appendChild(h('span', 'via', VIA[c.via] || c.via));
+      li.appendChild(l);
+
+      var card = h('div', 'dest-card');
+      card.appendChild(h('p', 'domain', hostOf(c.url)));
+      card.appendChild(h('p', 'url', c.url));
+      var actions = h('div', 'actions');
+      if (isHttp(c.url)) {
+        var open = h('a', 'btn', 'Buka link');
+        open.href = c.url; open.target = '_blank';
+        open.rel = 'noopener noreferrer nofollow';
+        actions.appendChild(open);
+      }
+      var cp = h('button', 'ghost', 'Salin');
+      cp.type = 'button';
+      cp.className = 'btn ghost';
+      cp.addEventListener('click', function () { copy(c.url, cp); });
+      actions.appendChild(cp);
+      card.appendChild(actions);
+      card.appendChild(h('p', 'caution', 'Periksa nama domain di atas sebelum membuka link.'));
+      li.appendChild(card);
+      ol.appendChild(li);
+    });
+    out.appendChild(ol);
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var url = input.value.trim();
+    if (!url) return;
+    btn.disabled = true; btn.textContent = 'Mencari...';
+    out.replaceChildren();
+
+    fetch('/api/resolve', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: url })
+    })
+    .then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (data) {
+        if (!res.ok) {
+          notice(data.error || (res.status === 429
+            ? 'Terlalu banyak permintaan. Coba lagi sebentar lagi.'
+            : 'Terjadi kesalahan di server. Coba lagi.'), null, true);
+        } else {
+          render(data);
+        }
+      });
+    })
+    .catch(function () {
+      notice('Tidak bisa menghubungi server. Periksa koneksi internet Anda.', null, true);
+    })
+    .then(function () {
+      btn.disabled = false; btn.textContent = 'Cari link asli';
+    });
+  });
+})();
+</script>
+</body>
+</html>
